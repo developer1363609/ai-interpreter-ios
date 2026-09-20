@@ -5,6 +5,8 @@ public struct ContentView: View {
     @ObservedObject var audioSession: AudioSessionManager
     @State private var isRunning = false
     @State private var languageDirection = "中文 → 英文"
+    @State private var outboundVoice = "偏男声 1 Cedar"
+    @State private var inboundVoice = "偏女声 1 Marin"
 
     public init(audioSession: AudioSessionManager) {
         self.audioSession = audioSession
@@ -24,6 +26,11 @@ public struct ContentView: View {
                 .padding(.horizontal, 12)
                 .frame(height: 38)
                 .background(Color(.systemGray6), in: RoundedRectangle(cornerRadius: 8))
+
+                fieldLabel("发给对方的声音")
+                voicePicker(selection: $outboundVoice)
+                fieldLabel("我听到的声音")
+                voicePicker(selection: $inboundVoice)
 
                 fieldLabel("输入设备")
                 deviceRow(audioSession.inputDeviceName)
@@ -90,6 +97,23 @@ public struct ContentView: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }
+        .padding(.horizontal, 12)
+        .frame(height: 38)
+        .background(.background, in: RoundedRectangle(cornerRadius: 8))
+    }
+
+    /// 声音选择器：三种偏男声和三种偏女声，会在会话开始前锁定。
+    private func voicePicker(selection: Binding<String>) -> some View {
+        Picker("声音", selection: selection) {
+            Text("偏男声 1 Cedar").tag("偏男声 1 Cedar")
+            Text("偏男声 2 Ash").tag("偏男声 2 Ash")
+            Text("偏男声 3 Echo").tag("偏男声 3 Echo")
+            Text("偏女声 1 Marin").tag("偏女声 1 Marin")
+            Text("偏女声 2 Coral").tag("偏女声 2 Coral")
+            Text("偏女声 3 Shimmer").tag("偏女声 3 Shimmer")
+        }
+        .pickerStyle(.menu)
+        .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, 12)
         .frame(height: 38)
         .background(.background, in: RoundedRectangle(cornerRadius: 8))
