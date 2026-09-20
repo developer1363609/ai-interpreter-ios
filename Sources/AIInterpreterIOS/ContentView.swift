@@ -1,9 +1,10 @@
 import SwiftUI
 
-/// iOS 首期翻译主界面：设备选择、状态和四栏字幕。
+/// iOS 主界面：结构与 Android 端保持一致，只使用 iOS 原生控件外观。
 public struct ContentView: View {
     @ObservedObject var audioSession: AudioSessionManager
     @State private var isRunning = false
+    @State private var languageDirection = "中文 → 英文"
 
     public init(audioSession: AudioSessionManager) {
         self.audioSession = audioSession
@@ -11,89 +12,98 @@ public struct ContentView: View {
 
     public var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
-                statusSection
-                deviceSection
-                captionSection
-                actionSection
+            VStack(alignment: .leading, spacing: 8) {
+                topBar
+                fieldLabel("语言方向")
+                Picker("语言方向", selection: $languageDirection) {
+                    Text("中文 → 英文").tag("中文 → 英文")
+                    Text("英文 → 中文").tag("英文 → 中文")
+                }
+                .pickerStyle(.menu)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 12)
+                .frame(height: 38)
+                .background(Color(.systemGray6), in: RoundedRectangle(cornerRadius: 8))
+
+                fieldLabel("输入设备")
+                deviceRow(audioSession.inputDeviceName)
+                fieldLabel("输出设备")
+                deviceRow(audioSession.outputDeviceName)
+
+                captionPanel(title: "我说的原文", text: "等待输入语音", color: .blue)
+                captionPanel(title: "给对方的译文", text: "等待翻译", color: .green)
+                captionPanel(title: "对方原文", text: "等待对方语音", color: .gray)
+                captionPanel(title: "给我的译文", text: "等待翻译", color: .orange)
+
+                Button(isRunning ? "停止音频会话" : "检查并开始翻译") {
+                    isRunning.toggle()
+                    if isRunning { audioSession.startProbe() }
+                    else { audioSession.stopProbe() }
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(Color(red: 0.09, green: 0.21, blue: 0.36))
+                .frame(maxWidth: .infinity)
+                .clipShape(RoundedRectangle(cornerRadius: 11))
+
+                Text(audioSession.statusMessage)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .padding(.top, 2)
             }
             .padding(.horizontal, 16)
             .padding(.bottom, 24)
         }
-        .task {
-            await audioSession.refreshPermissionsAndDevices()
-        }
+        .background(Color(red: 0.93, green: 0.95, blue: 0.97))
+        .task { await audioSession.refreshPermissionsAndDevices() }
     }
 
-    /// 显示当前权限、蓝牙路由和翻译会话状态。
-    private var statusSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(audioSession.statusMessage)
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-            HStack {
-                Label(audioSession.microphoneAuthorized ? "麦克风已授权" : "需要麦克风权限", systemImage: "mic")
-                Spacer()
-                Label(audioSession.routeName, systemImage: "wave.3.right")
-            }
+    /// 顶部导航和准备状态，保持与 Android 草图相同的位置和层级。
+    private var topBar: some View {
+        HStack {
+            Text("实时翻译")
+                .font(.system(size: 17, weight: .bold))
+                .foregroundStyle(.white)
+            Spacer()
+            Text("准备")
+                .font(.caption)
+                .foregroundStyle(.white)
+        }
+        .padding(.horizontal, 16)
+        .frame(height: 54)
+        .background(Color(red: 0.09, green: 0.21, blue: 0.36), in: RoundedRectangle(cornerRadius: 11))
+    }
+
+    /// 显示字段标签，统一两端的信息层级。
+    private func fieldLabel(_ text: String) -> some View {
+        Text(text)
             .font(.caption)
-        }
-        .padding()
-        .background(.blue.opacity(0.10), in: RoundedRectangle(cornerRadius: 14))
+            .foregroundStyle(.secondary)
+            .padding(.top, 6)
     }
 
-    /// 显示系统当前可用的音频输入和输出设备。
-    private var deviceSection: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("音频设备").font(.headline)
-            Text("输入：\(audioSession.inputDeviceName)")
-            Text("输出：\(audioSession.outputDeviceName)")
-                .foregroundStyle(.secondary)
-            Text(String(format: "当前音量 RMS %.3f", audioSession.inputRMS))
+    /// 显示一个可替换的输入或输出设备行。
+    private func deviceRow(_ name: String) -> some View {
+        HStack {
+            Text(name.isEmpty ? "选择设备" : name)
+            Spacer()
+            Image(systemName: "chevron.down")
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }
-        .padding()
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 14))
+        .padding(.horizontal, 12)
+        .frame(height: 38)
+        .background(.background, in: RoundedRectangle(cornerRadius: 8))
     }
 
-    /// 显示四栏实时字幕，保持与 Web 和桌面版一致的数据语义。
-    private var captionSection: some View {
-        VStack(spacing: 10) {
-            CaptionPanel(title: "我说的原文", text: "等待输入语音", color: .blue)
-            CaptionPanel(title: "给对方的译文", text: "等待翻译", color: .green)
-            CaptionPanel(title: "对方原文", text: "等待对方语音", color: .gray)
-            CaptionPanel(title: "给我的译文", text: "等待翻译", color: .orange)
-        }
-    }
-
-    /// 提供启动和停止音频会话的单一主操作。
-    private var actionSection: some View {
-        Button(isRunning ? "停止音频会话" : "检查并开始翻译") {
-            isRunning.toggle()
-            if isRunning {
-                audioSession.startProbe()
-            } else {
-                audioSession.stopProbe()
-            }
-        }
-        .buttonStyle(.borderedProminent)
-        .frame(maxWidth: .infinity)
-    }
-}
-
-private struct CaptionPanel: View {
-    let title: String
-    let text: String
-    let color: Color
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+    /// 四栏字幕卡片，语义与 Android 和 Web H5 完全一致。
+    private func captionPanel(title: String, text: String, color: Color) -> some View {
+        VStack(alignment: .leading, spacing: 3) {
             Text(title).font(.caption).foregroundStyle(.secondary)
-            Text(text).font(.title3)
+            Text(text).font(.subheadline)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding()
-        .background(color.opacity(0.12), in: RoundedRectangle(cornerRadius: 14))
+        .padding(.horizontal, 12)
+        .frame(minHeight: 42, alignment: .leading)
+        .background(color.opacity(0.12), in: RoundedRectangle(cornerRadius: 9))
     }
 }
