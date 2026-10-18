@@ -1,0 +1,5 @@
+# 本地及云端临时证据不进入源码仓库。
+build/
+__pycache__/
+*.pyc
+.DS_Store

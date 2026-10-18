@@ -1,0 +1,38 @@
+# M0 云端 Mac 分阶段验收计划
+
+更新：2026-10-18。当前只交付环境预检，不修改 iOS 业务源码。
+
+## 免费准入
+
+用户提供的加载完成 Billing 截图显示 Personal Account、免费分钟 0/500、Enable subscription。按该截图确认免费配额存在且 CI/CD 订阅未启用；不是浏览器直读，也不证明不存在任何其他账单或支付方式。每次运行前重新检查剩余额度，不点击启用订阅。
+
+## 执行与验收
+
+| 步骤 | 验收标准 | 状态 |
+|---|---|---|
+| F1 免费准入 | 个人免费分钟足够，CI/CD 未启用订阅 | 截图核验通过，首轮剩余 500 分钟 |
+| F2 配置准备 | 单个手动工作流、M2、10 分钟、无重试及发布；本地测试通过 | 5 项本地测试通过；远端推送状态待回读 |
+| F3 云端环境 | 从 dev 克隆；固定提交、Xcode 16.4、Swift、模拟器 SDK、可用 iOS 模拟器、Swift 包清单检查通过 | 等待用户手动触发，不计通过 |
+| F4 工程启动 | F3 通过后补唯一 App 入口及测试 target；无签名构建、单元测试、模拟器启动并截图 | 未执行；现有源码缺少 App 入口 |
+| F5 汇总 | 归档构建 ID、完整提交、环境与启动证据、免费额度前后变化 | 未执行；不替代 iPhone 音频验收 |
+
+F3 若失败，先分析证据并修复；不自动重试，不继续 F4。XcodeGen 只记录是否预装，缺失不冒充工程生成成功。
+
+## 手动触发首轮
+
+1. 打开已有 ai-interpreter-ios 应用，刷新并选择 dev，点击 Check for configuration files。
+2. 确认仍在 Personal Account、未启用订阅，免费余额至少 20 分钟；禁止新增付费 Team。
+3. 点击 Start new build，分支 dev，工作流 `m0-environment`。机器必须为 macOS M2，最长 10 分钟；不要开启调试驻留、自动重试、定时构建或 App Preview。
+4. 只启动一次。完成后保留构建链接、完整提交 SHA、各步骤日志和 `build/m0/environment.json` 制品，并记录免费分钟变化。
+5. 提供构建链接及制品；无需发送 Token、密码或验证码。失败不重复点击构建。
+
+本轮不会生成 App、IPA 或签名，也不调用语音供应商。配置文件无法验证账户 Billing 或锁定其他工作流的并发；需确保没有其他正在执行的构建。10 分钟是平台运行时限，不是成功保证或固定扣除量。
+
+## 本地验收命令
+
+Python 3 + PyYAML 6.0.3：`python -m unittest discover -s ci -p "test_*.py" -v`。
+云端采集器仅使用 Python 标准库，无需安装依赖。
+
+## 官方依据
+
+[YAML 配置、手动触发与机器类型](https://docs.codemagic.io/yaml-basic-configuration/yaml-getting-started/)

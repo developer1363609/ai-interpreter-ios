@@ -1,0 +1,13 @@
+# 仅手动触发环境预检；不配置触发器、发布、签名或自动重试。
+workflows:
+  m0-environment:
+    name: M0 免费 M2 环境预检
+    instance_type: mac_mini_m2
+    max_build_duration: 10
+    environment:
+      xcode: "16.4"
+    scripts:
+      - name: 核验提交与 macOS 开发环境
+        script: python3 ci/m0_environment.py
+    artifacts:
+      - build/m0/environment.json
